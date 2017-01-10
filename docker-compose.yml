@@ -1,0 +1,114 @@
+#
+# This docker-compose file is meant to manager a Drupal 'Application"
+#
+# The Shell container serves two functions
+#   1) provide SSH access into the manager of all the volumes of data
+#   2) Define the volumes and map them to the ./data folder
+#
+#
+version: '2'
+
+services:
+
+  shell:
+    build: ./shell
+    volumes: 
+      # Volumes for general access to external data & config  
+      # If your public key is not in the authorized_keys file kept in the .ssh folder, you will need to put it there.
+      - ./data:/root
+
+      # File mapping needed for Nginx Config
+      - ./data/config/nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+      # Volumes need for website
+      - ${WEB}:/usr/share/nginx/html
+
+      # Volumes needed for SQL
+      - ${SQL}:/var/lib/mysql
+
+      # File mapping needed for PHP-FPM Config
+      - ./data/config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./data/config/php/ssmtp.conf:/etc/ssmtp/ssmtp.conf
+
+    ports:
+      - "22"
+    networks:
+      # At the time of this build, the order of multiple networks 
+      # is important. The last one defined is the one that will be
+      # matched to the ports above.
+      - cluster
+      - public
+    restart: unless-stopped
+
+  fpm:
+    build: ./fpm
+    depends_on:
+      - sql
+    volumes:
+      # Volumes need for website
+      - ${WEB}:/usr/share/nginx/html
+
+      # File mapping needed for PHP-FPM Config
+      - ./data/config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./data/config/php/ssmtp.conf:/etc/ssmtp/ssmtp.conf
+    networks:
+      - cluster
+    ports:
+      - "9000"
+
+  sql:
+    environment: 
+      MYSQL_ROOT_PASSWORD: abcdefg123ABCDEFG
+    image: mariadb
+    volumes:
+      # Volumes needed for SQL
+      - ${SQL}:/var/lib/mysql
+    networks:
+      - cluster
+    ports:
+      - "3306"
+
+  mailcatcher:
+    build: ./mailcatcher
+    depends_on:
+      - fpm
+    ports:
+      - "80"
+      - "25"
+    networks:
+      # At the time of this build, the order of multiple networks 
+      # is important. The last one defined is the one that will be
+      # matched to the ports above.
+      - cluster
+      - public
+
+  nginx:
+    image: nginx
+    depends_on:
+      - shell
+      - fpm
+      - sql
+    volumes:
+      # Volumes need for website
+      - ${WEB}:/usr/share/nginx/html
+      # File mapping needed for Nginx Config
+      - ./data/config/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80"
+      - "443"
+    networks:
+      # At the time of this build, the order of multiple networks 
+      # is important. The last one defined is the one that will be
+      # matched to the ports above.
+      - cluster
+      - public
+
+networks:
+  cluster:
+    # This network is for internal communications of containers 
+    # in the cluster.
+    driver: bridge
+  public:
+    # This is the external network for communications with the
+    # outside world.
+    driver: bridge
