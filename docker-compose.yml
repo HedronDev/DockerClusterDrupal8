@@ -21,10 +21,10 @@ services:
       - ./data/config/nginx/default.conf:/etc/nginx/conf.d/default.conf
 
       # Volumes need for website
-      - ${WEB}:/usr/share/nginx/html
+      - ${HEDRON_WEB_VOL}:/usr/share/nginx/html
 
       # Volumes needed for SQL
-      - ${SQL}:/var/lib/mysql
+      - ${HEDRON_SQL_VOL}:/var/lib/mysql
 
       # File mapping needed for PHP-FPM Config
       - ./data/config/php/php.ini:/usr/local/etc/php/php.ini
@@ -46,7 +46,7 @@ services:
       - sql
     volumes:
       # Volumes need for website
-      - ${WEB}:/usr/share/nginx/html
+      - ${HEDRON_WEB_VOL}:/usr/share/nginx/html
 
       # File mapping needed for PHP-FPM Config
       - ./data/config/php/php.ini:/usr/local/etc/php/php.ini
@@ -62,7 +62,7 @@ services:
     image: mariadb
     volumes:
       # Volumes needed for SQL
-      - ${SQL}:/var/lib/mysql
+      - ${HEDRON_SQL_VOL}:/var/lib/mysql
     networks:
       - cluster
     ports:
@@ -90,7 +90,7 @@ services:
       - sql
     volumes:
       # Volumes need for website
-      - ${WEB}:/usr/share/nginx/html
+      - ${HEDRON_WEB_VOL}:/usr/share/nginx/html
       # File mapping needed for Nginx Config
       - ./data/config/nginx/default.conf:/etc/nginx/conf.d/default.conf
     ports:
